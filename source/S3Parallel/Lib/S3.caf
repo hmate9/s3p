@@ -11,11 +11,13 @@ class S3 extends BaseClass
   @classGetter
     s3: ->
       listBuckets:    (options = {}) -> Promise.resolve @awsSdkS3.send new ListBucketsCommand options
-      listObjectsV2:  (options = {}) -> Promise.resolve @awsSdkS3.send new ListObjectsV2Command options
+      listObjectsV2:  (options = {}) -> 
+        Promise.resolve @awsSdkS3.send new ListObjectsV2Command options
       getObject:      (options = {}) -> Promise.resolve @awsSdkS3.send new GetObjectCommand options
       copyObject:     (options = {}) -> Promise.resolve @awsSdkS3.send new CopyObjectCommand options
       deleteObject:   (options = {}) -> Promise.resolve @awsSdkS3.send new DeleteObjectCommand options
       headObject:     (options = {}) -> Promise.resolve @awsSdkS3.send new HeadObjectCommand options
+
 
   @commonCopyOptionsSdkKeys =
     :ACL
@@ -134,6 +136,11 @@ class S3 extends BaseClass
 
       else
         @s3.copyObject copyOptions
+        .catch (error) ->
+          console.error(error)
+          @largeCopy {}
+            commonCopyOptions: @extractCommonCopyOptions options
+            fromBucket, toBucket, toFolder, fromKey, toKey, pretend, verbose
 
   @delete: (options) =>
     @s3.deleteObject
@@ -154,6 +161,7 @@ class S3 extends BaseClass
           aws s3 cp
           #{} escape createS3Url fromBucket, fromFolder, fromKey
           #{} escape createS3Url toBucket, toFolder, toKey
+          --copy-props none
         array v, key from commonCopyOptions when v
           "" --#{dashCase key} #{}
             switch v
@@ -168,7 +176,8 @@ class S3 extends BaseClass
     if pretend
       timeout 1 -> pretend: true
     else
-      shellExec command
+      shellExec(command).catch (error) ->
+        console.error(error)
 
   # get object's metdata
   @headObject: ({bucket, key}) =>
